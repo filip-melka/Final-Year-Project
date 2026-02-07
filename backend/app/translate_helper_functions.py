@@ -1,15 +1,15 @@
-import os
-import json
-import base64
-from io import BytesIO
 from docx import Document
 from dotenv import load_dotenv
+import os
 import chromadb
 from openai import OpenAI
 import tiktoken
+import json
+from pydantic import BaseModel
+from typing import List
 import uuid
 
-load_dotenv()
+load_dotenv() 
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 CHROMA_API_KEY = os.getenv('CHROMA_API_KEY')
@@ -28,13 +28,11 @@ collection = chroma_client.get_or_create_collection(name="translations", configu
         }
     })
 
-
 def extract_paragraph_runs(element, runs):
     for p in element.paragraphs:
         for r in p.runs:
             if len(r.text) > 0:
                 runs.append(r)
-
 
 def get_non_empty_runs(doc):
     runs = []
@@ -57,21 +55,16 @@ def get_non_empty_runs(doc):
 
     return runs
 
-
 def get_text_segments(runs):
     text_segments = []
     for run in runs:
         text_segments.append(run.text)
     return text_segments
 
+class TranslatedTextSegments(BaseModel):
+    text_segments: List[str]
 
-class TranslatedTextSegments(object):
-    # minimal shape compatible with client.responses.parse usage in original
-    def __init__(self, text_segments):
-        self.text_segments = text_segments
-
-
-def translate_text_segments(text_segments, language, client):
+def translate_text_segments(text_segments, language):
     system_prompt = f"""
 You are translating a document. You will be given the target language and an array of arrays. Each array represents a paragraph. Individual elements are "runs" (piece of text with the same formatting). You have to translate all paragraphs and return back the same representation using arrays, but translated. Return back only the translated array.
 
@@ -88,7 +81,10 @@ Document representation: {json.dumps(text_segments, ensure_ascii=False)}
         model="gpt-4o",
         input=[
             {"role": "system", "content": system_prompt.strip()},
-            {"role": "user", "content": user_prompt.strip()},
+            {
+                "role": "user",
+                "content": user_prompt.strip(),
+            },
         ],
         text_format=TranslatedTextSegments
     )
@@ -97,8 +93,7 @@ Document representation: {json.dumps(text_segments, ensure_ascii=False)}
     
     return translated_arr
 
-
-def retrieve_past_translations(text_segments, translations, language_code, client):
+def retrieve_past_translations(text_segments, translations, language_code):
     to_be_translated = []
     no_of_reused = 0
     no_of_total = 0
@@ -148,18 +143,15 @@ def retrieve_past_translations(text_segments, translations, language_code, clien
         "cost_savings": cost_savings
     }
 
-
-def translate_document_and_return(doc, language_full, language_code, client):
+def translate(doc, language_full, language_code):
     runs = get_non_empty_runs(doc)
     text_segments = get_text_segments(runs)
 
     translations = {}
-    retrieved_data = retrieve_past_translations(text_segments, translations, language_code, client)
+    retrieved_data = retrieve_past_translations(text_segments, translations, language_code)
 
     to_be_translated = retrieved_data["to_be_translated"]
-    translated_text_segments = []
-    if to_be_translated:
-        translated_text_segments = translate_text_segments(to_be_translated, language_full, client)
+    translated_text_segments = translate_text_segments(to_be_translated, language_full)
 
     # Save translations into the index
     for idx, translated_text_segment in enumerate(translated_text_segments):
@@ -183,51 +175,10 @@ def translate_document_and_return(doc, language_full, language_code, client):
         )
     
     for run in runs:
-        run.text = translations.get(run.text, run.text)
+        run.text = translations[run.text]
 
-    # Save translated docx to bytes
-    output_buffer = BytesIO()
-    doc.save(output_buffer)
-    doc_bytes = output_buffer.getvalue()
-
-    return doc_bytes, {
+    return {
         "total_segments": retrieved_data["no_of_total"],
         "reused_segments": retrieved_data["no_of_reused"],
         "cost_savings": retrieved_data["cost_savings"],
     }
-
-
-def lambda_handler(event, context):
-    try:
-        encoded_doc = event.get('file')
-        language = event.get('language')
-        language_code = event.get('languageCode')
-
-        if not all([encoded_doc, language, language_code]):
-            return {"statusCode": 400, "error": "Missing required parameters"}
-
-        try:
-            document_data = base64.b64decode(encoded_doc)
-            input_buffer = BytesIO(document_data)
-        except Exception as e:
-            return {"statusCode": 400, "error": f"Invalid base64 document: {str(e)}"}
-
-        try:
-            doc = Document(input_buffer)
-        except Exception as e:
-            return {"statusCode": 400, "error": f"Failed to parse DOCX: {str(e)}"}
-
-        doc_bytes, metrics = translate_document_and_return(doc, language, language_code, client)
-
-        translated_b64 = base64.b64encode(doc_bytes).decode('utf-8')
-
-        return {
-            "statusCode": 200,
-            "translated_file": translated_b64,
-            "total_segments": metrics["total_segments"],
-            "reused_segments": metrics["reused_segments"],
-            "cost_savings": metrics["cost_savings"]
-        }
-
-    except Exception as e:
-        return {"statusCode": 500, "error": str(e)}

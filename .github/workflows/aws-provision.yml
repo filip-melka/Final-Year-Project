@@ -44,7 +44,7 @@ jobs:
         with:
           name: tf-artifacts
           path: |
-            tf/tfplan
+            backend/terraform/tfplan
 
   deploy:
     name: Terraform Deploy
@@ -70,14 +70,14 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: tf-artifacts
-          path: tf
+          path: backend/terraform
 
       - name: Terraform init
         run: |
-          cd tf
+          cd backend/terraform
           terraform init
 
       - name: Terraform apply
         run: |
-          cd tf
+          cd backend/terraform
           terraform apply tfplan

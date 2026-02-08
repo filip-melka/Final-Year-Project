@@ -36,7 +36,7 @@ jobs:
 
       - name: Terraform plan
         run: |
-          cd tf
+          cd backend/terraform
           terraform plan -out=tfplan
 
       - name: Upload plan artifact

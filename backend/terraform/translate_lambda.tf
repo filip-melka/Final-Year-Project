@@ -4,7 +4,7 @@ resource "aws_lambda_function" "docx_function" {
   package_type  = "Image"
   image_uri     = "${var.lambda_image_uri}:${var.lambda_image_tag}"
   memory_size = 512
-  timeout = 150
+  timeout = 300
 
   environment {
     variables = {

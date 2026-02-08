@@ -5,6 +5,6 @@ COPY requirements.txt ${LAMBDA_TASK_ROOT}/
 RUN pip install --upgrade pip \
  && pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
 
-COPY translate_worker_lambda.py ${LAMBDA_TASK_ROOT}/
+COPY translate_lambda.py translate_helper_functions.py ${LAMBDA_TASK_ROOT}/
 
-CMD ["translate_worker_lambda.lambda_handler"]
+CMD ["translate_lambda.lambda_handler"]

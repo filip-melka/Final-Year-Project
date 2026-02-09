@@ -155,7 +155,10 @@ export default function Translate() {
                 }}
               />
             ) : (
-              <DownloadDocBtn editorRef={editorRef} />
+              <DownloadDocBtn
+                fileKey={translationRes.key}
+                editorRef={editorRef}
+              />
             )}
           </div>
         )}

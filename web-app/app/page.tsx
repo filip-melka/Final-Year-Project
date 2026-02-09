@@ -1,3 +1,5 @@
+import { FileDialog } from "@/components/file-dialog"
+import { SelectFileBtn } from "@/components/select-file-btn"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Sparkles } from "lucide-react"
@@ -17,12 +19,12 @@ export default function Home() {
             costs and improve translation consistency.
           </p>
           <div className="flex mt-28 gap-4 items-center justify-center">
-            {/* Select file btn */}
+            <SelectFileBtn />
             <Button variant="outline">Learn More</Button>
           </div>
         </div>
       </main>
-      {/* File dialog */}
+      <FileDialog />
     </>
   )
 }

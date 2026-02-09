@@ -8,16 +8,63 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url)
     const fileKey = url.searchParams.get("fileKey")
+    const type = (url.searchParams.get("type") || "docx").toLowerCase()
 
     console.log(fileKey)
 
     if (!fileKey) {
       return new Response("Missing fileKey", { status: 400 })
     }
-
     const base64 = await getDocxFileAsString(fileKey)
     const data = Buffer.from(base64, "base64")
-    const filename = fileKey.split("/").pop() || "document.docx"
+    const originalFilename = fileKey.split("/").pop() || "document.docx"
+
+    if (type === "pdf") {
+      const SUPERDOC_API_KEY = process.env.SUPERDOC_API_KEY
+      if (!SUPERDOC_API_KEY) {
+        return new Response("Missing SUPERDOC_API_KEY", { status: 500 })
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const form: any = new FormData()
+      const blob = new Blob([data], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      })
+      form.append("file", blob, originalFilename)
+
+      const resp = await fetch(
+        "https://api.superdoc.dev/v1/convert?from=docx&to=pdf",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SUPERDOC_API_KEY}`,
+          },
+          body: form,
+        },
+      )
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => "")
+        console.error("Superdoc conversion failed", resp.status, text)
+        return new Response("Conversion failed", { status: 502 })
+      }
+
+      const pdfArrayBuffer = await resp.arrayBuffer()
+      const pdfBuffer = Buffer.from(pdfArrayBuffer)
+      const pdfFilename = originalFilename.replace(/\.docx$/i, "") + ".pdf"
+
+      return new Response(pdfBuffer, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${pdfFilename}"`,
+          "Content-Length": String(pdfBuffer.byteLength),
+        },
+      })
+    }
+
+    // Default: return docx
+    const filename = originalFilename
 
     return new Response(data, {
       status: 200,

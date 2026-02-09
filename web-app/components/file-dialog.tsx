@@ -42,7 +42,7 @@ export function FileDialog() {
               <InputGroupAddon align="inline-end">.docx</InputGroupAddon>
             </InputGroup>
             <FieldDescription>
-              The filename will be used as a key and must be unique.
+              The filename will be used as a key.
             </FieldDescription>
           </Field>
           <Field className="mt-8">

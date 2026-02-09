@@ -13,7 +13,9 @@ export default function Home() {
             <Sparkles />
             <span>AI-Powered</span>
           </Badge>
-          <p className="text-5xl font-semibold mt-4 mb-8">Welcome to Polydoc</p>
+          <h2 className="text-5xl font-semibold mt-4 mb-8">
+            Welcome to Polydoc
+          </h2>
           <p className="opacity-70">
             A smart translation system that uses a vector database to reduce
             costs and improve translation consistency.

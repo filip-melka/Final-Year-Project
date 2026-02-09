@@ -32,3 +32,29 @@ export async function GET(req: Request) {
     return new Response("File not found", { status: 404 })
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json()
+    const { fileKey, file } = body
+
+    if (!fileKey || !file) {
+      return new Response("Missing fileKey or file", { status: 400 })
+    }
+
+    await putDocxFile(fileKey, file)
+    await putCustomMetric("UserEdits", 1, {
+      dimensions: [
+        {
+          Name: "Environment",
+          Value: "dev",
+        },
+      ],
+    })
+
+    return new Response("OK", { status: 200 })
+  } catch (err) {
+    console.error("POST /document error", err)
+    return new Response("Failed to upload", { status: 500 })
+  }
+}

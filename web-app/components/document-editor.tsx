@@ -8,6 +8,13 @@ import React, {
 } from "react"
 import dynamic from "next/dynamic"
 import { Button } from "./ui/button"
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "./ui/select"
 import { SuperDoc } from "@harbour-enterprises/superdoc"
 import { putDocxFile } from "@/lib/aws-clients"
 
@@ -171,17 +178,88 @@ export function SaveDocBtn({
   )
 }
 
-export function DownloadDocBtn({ editorRef }: { editorRef: EditorHandleRef }) {
+export function DownloadDocBtn({
+  editorRef,
+  fileKey,
+}: {
+  editorRef: EditorHandleRef
+  fileKey?: string
+}) {
+  const [value, setValue] = React.useState("docx")
+
+  function getFilenameFromKey(key?: string, fallback = "document.docx") {
+    if (!key) return fallback
+    return key.split("/").pop() || fallback
+  }
+
+  async function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleChange(v: string) {
+    setValue(v)
+
+    try {
+      if (v === "docx") {
+        // Export from the editor as a blob and download
+        const blob = await editorRef.current?.exportDoc?.({
+          triggerDownload: false,
+          commentsType: "clean",
+        })
+        if (!blob) {
+          console.error("No docx blob returned from editor")
+          return
+        }
+        const filename = getFilenameFromKey(fileKey, "document.docx")
+        await downloadBlob(blob, filename)
+        return
+      }
+
+      if (v === "pdf") {
+        if (!fileKey) {
+          alert("Missing fileKey: cannot request PDF conversion")
+          return
+        }
+
+        const url = `/api/document?fileKey=${encodeURIComponent(
+          fileKey,
+        )}&type=pdf`
+        const resp = await fetch(url)
+        if (!resp.ok) {
+          console.error("Failed to fetch PDF", resp.status)
+          alert("Failed to convert/download PDF")
+          return
+        }
+        const arrayBuffer = await resp.arrayBuffer()
+        const pdfBlob = new Blob([arrayBuffer], { type: "application/pdf" })
+        const original = getFilenameFromKey(fileKey, "document.docx")
+        const pdfFilename = original.replace(/\.docx$/i, "") + ".pdf"
+        await downloadBlob(pdfBlob, pdfFilename)
+        return
+      }
+    } catch (e) {
+      console.error("Download error", e)
+      alert("Download failed")
+    }
+  }
+
   return (
-    <Button
-      onClick={async () => {
-        await editorRef.current
-          ?.getSuperDoc()
-          ?.export({ commentsType: "clean" })
-      }}
-    >
-      Download
-    </Button>
+    <Select value={value} onValueChange={handleChange}>
+      <SelectTrigger size="default">
+        <SelectValue>Download</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="docx">DOCX</SelectItem>
+        <SelectItem value="pdf">PDF</SelectItem>
+      </SelectContent>
+    </Select>
   )
 }
 

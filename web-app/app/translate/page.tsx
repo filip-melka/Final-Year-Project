@@ -1,14 +1,27 @@
 "use client"
 
 import { useFileContext } from "@/context/file-context"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { TranslateResponse } from "../api/translate/route"
 import { Euro, Eye, Loader2, Pencil, Repeat, Text } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import dynamic from "next/dynamic"
 import { toast } from "sonner"
+import {
+  DownloadDocBtn,
+  EditorHandle,
+  SaveDocBtn,
+} from "@/components/document-editor"
+
+const DocumentEditor = dynamic(() => import("@/components/document-editor"), {
+  ssr: false,
+  loading: () => <div>Loading editor...</div>,
+})
 
 export default function Translate() {
+  const editorRef = useRef<EditorHandle | null>(null)
+
   const { file, language, filename, discardFile } = useFileContext()
   const [isEditing, setIsEditing] = useState(false)
   const [isEditorReady, setIsEditorReady] = useState(false)
@@ -76,7 +89,12 @@ export default function Translate() {
             </Button>
           )}
         </div>
-        {/* Document editor */}
+        <DocumentEditor
+          ref={editorRef}
+          onReady={() => setIsEditorReady(true)}
+          isEditing={isEditing}
+          document={`/api/document?fileKey=${encodeURIComponent(translationRes.key)}`}
+        />
       </div>
       <div className="w-fit min-h-[calc(100vh-9rem)] flex flex-col justify-between py-20">
         <div className="flex flex-col gap-4 w-[300px]">
@@ -126,7 +144,20 @@ export default function Translate() {
           </Card>
         </div>
         {isEditorReady && (
-          <div className="flex justify-end">{/* Save and edit buttons */}</div>
+          <div className="flex justify-end">
+            {isEditing ? (
+              <SaveDocBtn
+                editorRef={editorRef}
+                fileKey={translationRes.key}
+                onSave={() => {
+                  toast.info("Document has been saved.")
+                  setIsEditing(false)
+                }}
+              />
+            ) : (
+              <DownloadDocBtn editorRef={editorRef} />
+            )}
+          </div>
         )}
       </div>
     </main>

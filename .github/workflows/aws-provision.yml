@@ -14,6 +14,9 @@ jobs:
   plan:
     name: Terraform plan
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_open_api_key: ${{ secrets.OPEN_API_KEY }}
+      TF_VAR_chroma_api_key: ${{ secrets.CHROMADB_API_KEY }}
     steps:
       - uses: actions/checkout@v3
 
@@ -51,6 +54,9 @@ jobs:
     needs: plan
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_open_api_key: ${{ secrets.OPEN_API_KEY }}
+      TF_VAR_chroma_api_key: ${{ secrets.CHROMADB_API_KEY }}
     steps:
       - uses: actions/checkout@v3
 

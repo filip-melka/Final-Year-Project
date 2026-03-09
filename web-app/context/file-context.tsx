@@ -13,7 +13,7 @@ type FileContextType = {
   file: File | null
   language: Language | null
   filename: string
-  uploadFile: (file: File) => void
+  uploadFile: (file: File) => string | undefined
   setLanguage: (language: Language) => void
   setFilename: (filename: string) => void
   discardFile: () => void
@@ -46,7 +46,6 @@ export function FileContextProvider({ children }: { children: ReactNode }) {
       return "File is too large. Must be under 8MB."
     }
 
-    console.log(file)
     setFilename(file.name.replace(".docx", ""))
     setFile(file)
   }

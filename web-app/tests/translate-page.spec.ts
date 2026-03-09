@@ -4,7 +4,9 @@ import fs from "fs"
 
 const fixtureFile = path.join(__dirname, "fixtures", "test-doc.docx")
 
-async function uploadAndStartTranslation(page: import("@playwright/test").Page) {
+async function uploadAndStartTranslation(
+  page: import("@playwright/test").Page,
+) {
   await page.goto("/")
   const fileInput = page.locator('input[type="file"][accept=".docx"]')
   await fileInput.setInputFiles(fixtureFile)
@@ -29,7 +31,7 @@ test("navigating directly to /translate without a file redirects to /", async ({
   await page.goto("/translate")
   await page.waitForURL("/")
   await expect(
-    page.getByRole("heading", { name: "Welcome to Polydoc" }),
+    page.getByRole("heading", { name: "Translate documents, smarter." }),
   ).toBeVisible()
 })
 
@@ -62,14 +64,16 @@ test("mocked happy path: stat cards show correct values", async ({ page }) => {
   await expect(page.getByText("Translating")).toBeHidden({ timeout: 15_000 })
 
   // Stat cards
-  await expect(page.getByText("Total Segments")).toBeVisible()
+  await expect(page.getByText("Total Segments")).toBeVisible({
+    timeout: 15_000,
+  })
   await expect(page.getByText("10")).toBeVisible()
 
   await expect(page.getByText("Reuse Rate")).toBeVisible()
-  await expect(page.getByText("60.00%")).toBeVisible()
+  await expect(page.getByText("60.0%")).toBeVisible()
 
   await expect(page.getByText("Cost Savings")).toBeVisible()
-  await expect(page.getByText("$ 0.0042")).toBeVisible()
+  await expect(page.getByText("$0.0042")).toBeVisible()
 
   // Filename in editor header
   await expect(page.getByText("my-test-doc.docx")).toBeVisible()

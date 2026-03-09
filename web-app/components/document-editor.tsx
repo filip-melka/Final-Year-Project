@@ -6,11 +6,10 @@ import React, {
   useImperativeHandle,
   useState,
 } from "react"
-import dynamic from "next/dynamic"
 import { Button } from "./ui/button"
 import { Loader2, Save, FileDown } from "lucide-react"
+import { toast } from "sonner"
 import { SuperDoc } from "@harbour-enterprises/superdoc"
-import { putDocxFile } from "@/lib/aws-clients"
 
 type EditorHandle = {
   getSuperDoc: () => SuperDoc | null
@@ -104,14 +103,6 @@ const DocumentEditorComponent = forwardRef<EditorHandle, DocumentEditorProps>(
   },
 )
 
-// Prevent SSR issues by dynamically loading the forwarded component
-const DocumentEditor = dynamic(
-  async () => {
-    return DocumentEditorComponent
-  },
-  { ssr: false },
-)
-
 type EditorHandleRef = RefObject<EditorHandle | null>
 
 export function SaveDocBtn({
@@ -147,7 +138,6 @@ export function SaveDocBtn({
       })
       if (!blob) return
       const base64 = await blobToBase64(blob)
-      await putDocxFile(fileKey, base64)
       const res = await fetch("/api/document", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,6 +150,7 @@ export function SaveDocBtn({
       onSave()
     } catch (e) {
       console.error("SaveDocBtn error", e)
+      toast.error("Save failed. Please try again.")
     } finally {
       setIsSaving(false)
     }
@@ -226,7 +217,7 @@ export function DownloadDocBtn({
       await downloadBlob(blob, getFilenameFromKey(fileKey, "document.docx"))
     } catch (e) {
       console.error("Download error", e)
-      alert("Download failed")
+      toast.error("Download failed.")
     } finally {
       setDownloadingDocx(false)
     }
@@ -234,7 +225,7 @@ export function DownloadDocBtn({
 
   async function handlePdf() {
     if (!fileKey) {
-      alert("Missing fileKey: cannot request PDF conversion")
+      toast.error("Download failed.")
       return
     }
     setDownloadingPdf(true)
@@ -243,7 +234,7 @@ export function DownloadDocBtn({
       const resp = await fetch(url)
       if (!resp.ok) {
         console.error("Failed to fetch PDF", resp.status)
-        alert("Failed to convert/download PDF")
+        toast.error("Download failed.")
         return
       }
       const arrayBuffer = await resp.arrayBuffer()
@@ -253,7 +244,7 @@ export function DownloadDocBtn({
       await downloadBlob(pdfBlob, pdfFilename)
     } catch (e) {
       console.error("Download error", e)
-      alert("Download failed")
+      toast.error("Download failed.")
     } finally {
       setDownloadingPdf(false)
     }
@@ -301,4 +292,4 @@ export function DownloadDocBtn({
 }
 
 export type { EditorHandle }
-export default DocumentEditor
+export default DocumentEditorComponent

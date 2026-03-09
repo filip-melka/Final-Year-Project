@@ -14,14 +14,14 @@ import {
   SelectValue,
 } from "./ui/select"
 
+const languages = Array.from(supportedLanguages.entries()).sort((a, b) =>
+  a[1].localeCompare(b[1]),
+)
+
 export function FileDialog() {
   const router = useRouter()
   const { file, language, filename, setFilename, setLanguage, discardFile } =
     useFileContext()
-
-  const languages = Array.from(supportedLanguages.entries()).sort((a, b) =>
-    a[1].localeCompare(b[1]),
-  )
 
   function handleClick() {
     router.push("/translate")
@@ -30,7 +30,7 @@ export function FileDialog() {
   if (file) {
     return (
       <div className="w-full h-full fixed top-0 left-0 bg-black/20 backdrop-blur-xs flex items-center justify-center">
-        <div className="bg-white rounded-xl px-8 py-6 w-fit max-w-sm">
+        <div className="bg-background rounded-xl px-8 py-6 w-fit max-w-sm">
           <Field>
             <FieldLabel htmlFor="filename-input">Filename</FieldLabel>
             <InputGroup>
@@ -77,4 +77,6 @@ export function FileDialog() {
       </div>
     )
   }
+
+  return null
 }

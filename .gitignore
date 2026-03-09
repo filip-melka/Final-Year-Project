@@ -1,5 +1,7 @@
 .evn
 
+__pycache__
+
 # Terraform
 .terraform
 terraform.tfstate

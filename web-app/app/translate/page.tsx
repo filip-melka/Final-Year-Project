@@ -55,7 +55,7 @@ export default function Translate() {
 
   if (!translationRes) {
     return (
-      <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center">
+      <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center pb-20">
         <div className="flex flex-col items-center gap-5">
           <div className="relative">
             <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center">

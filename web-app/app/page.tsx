@@ -42,7 +42,7 @@ export default function Home() {
           </p>
           <div className="mt-10 flex flex-col items-center gap-2">
             <SelectFileBtn />
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               .docx · up to 8 MB
             </span>
           </div>

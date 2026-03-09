@@ -27,10 +27,11 @@ export default function Translate() {
   const [isEditorReady, setIsEditorReady] = useState(false)
   const [translationRes, setTranslationRes] =
     useState<TranslateResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (file && language) {
-      // eslint-disable-next-line react-hooks/immutability
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       handleTranslation(file)
     } else {
       discardFile()
@@ -38,19 +39,44 @@ export default function Translate() {
   }, [])
 
   async function handleTranslation(file: File) {
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("filename", filename)
-    formData.append("languageCode", language!.code)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("filename", filename)
+      formData.append("languageCode", language!.code)
 
-    const res = await fetch("/api/translate", {
-      method: "POST",
-      body: formData,
-    })
+      const res = await fetch("/api/translate", {
+        method: "POST",
+        body: formData,
+      })
 
-    const data = await res.json()
-    console.log(data)
-    setTranslationRes(data)
+      if (!res.ok) {
+        throw new Error(`Translation request failed (${res.status})`)
+      }
+
+      const data = await res.json()
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      setTranslationRes(data)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Translation failed. Please try again."
+      setError(message)
+      toast.error(message)
+    }
+  }
+
+  if (error) {
+    return (
+      <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center pb-20">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="text-sm font-medium text-destructive">Translation failed</span>
+          <span className="text-sm text-muted-foreground">{error}</span>
+        </div>
+      </main>
+    )
   }
 
   if (!translationRes) {

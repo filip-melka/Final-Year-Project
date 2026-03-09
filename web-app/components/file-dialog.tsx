@@ -16,7 +16,7 @@ import {
 
 export function FileDialog() {
   const router = useRouter()
-  const { file, filename, setFilename, setLanguage, discardFile } =
+  const { file, language, filename, setFilename, setLanguage, discardFile } =
     useFileContext()
 
   const languages = Array.from(supportedLanguages.entries()).sort((a, b) =>
@@ -71,7 +71,7 @@ export function FileDialog() {
             <Button variant="outline" onClick={discardFile}>
               Cancel
             </Button>
-            <Button onClick={handleClick}>Translate</Button>
+            <Button onClick={handleClick} disabled={!language}>Translate</Button>
           </div>
         </div>
       </div>

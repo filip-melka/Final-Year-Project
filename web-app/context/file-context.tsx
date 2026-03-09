@@ -46,7 +46,7 @@ export function FileContextProvider({ children }: { children: ReactNode }) {
       return "File is too large. Must be under 8MB."
     }
 
-    setFilename(file.name.replace(".docx", ""))
+    setFilename(file.name.replace(/\.docx$/i, ""))
     setFile(file)
   }
 

@@ -9,7 +9,7 @@ test("upload, rename, translate to German, and download as DOCX and PDF", async 
   // 1. Navigate to home page
   await page.goto("/")
   await expect(
-    page.getByRole("heading", { name: "Welcome to Polydoc" }),
+    page.getByRole("heading", { name: "Translate documents, smarter." }),
   ).toBeVisible()
 
   // 2. Upload DOCX file
@@ -52,25 +52,18 @@ test("upload, rename, translate to German, and download as DOCX and PDF", async 
     timeout: 30_000,
   })
 
-  // 10. Download PDF (select defaults to "docx", so picking PDF triggers onValueChange)
-  const [pdfDownload] = await Promise.all([
-    page.waitForEvent("download"),
-    (async () => {
-      await page.getByText("Download").click()
-      await page.getByRole("option", { name: "PDF" }).click()
-    })(),
-  ])
-  expect(pdfDownload.suggestedFilename()).toMatch(/\.pdf$/)
-
-  // 11. Download DOCX (value is now "pdf", so picking DOCX triggers onValueChange)
+  // 10. Download DOCX
   const [docxDownload] = await Promise.all([
     page.waitForEvent("download"),
-    (async () => {
-      await page.getByText("Download").click()
-      await page.getByRole("option", { name: "DOCX" }).click()
-    })(),
+    page.getByRole("button", { name: "Download DOCX" }).click(),
   ])
   expect(docxDownload.suggestedFilename()).toContain("my-test-doc")
   expect(docxDownload.suggestedFilename()).toMatch(/\.docx$/)
+
+  // 11. Download PDF
+  const [pdfDownload] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download PDF" }).click(),
+  ])
   expect(pdfDownload.suggestedFilename()).toMatch(/\.pdf$/)
 })

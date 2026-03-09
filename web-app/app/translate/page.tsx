@@ -1,18 +1,18 @@
 "use client"
 
-import { useFileContext } from "@/context/file-context"
-import { useEffect, useRef, useState } from "react"
-import { TranslateResponse } from "../api/translate/route"
-import { Euro, Eye, Loader2, Pencil, Repeat, Text } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Euro, FileText, Loader2, Pencil, Repeat, Text } from "lucide-react"
 import dynamic from "next/dynamic"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import {
   DownloadDocBtn,
-  EditorHandle,
+  type EditorHandle,
   SaveDocBtn,
 } from "@/components/document-editor"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useFileContext } from "@/context/file-context"
+import type { TranslateResponse } from "../api/translate/route"
 
 const DocumentEditor = dynamic(() => import("@/components/document-editor"), {
   ssr: false,
@@ -27,10 +27,11 @@ export default function Translate() {
   const [isEditorReady, setIsEditorReady] = useState(false)
   const [translationRes, setTranslationRes] =
     useState<TranslateResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (file && language) {
-      // eslint-disable-next-line react-hooks/immutability
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       handleTranslation(file)
     } else {
       discardFile()
@@ -38,113 +39,172 @@ export default function Translate() {
   }, [])
 
   async function handleTranslation(file: File) {
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("filename", filename)
-    formData.append("languageCode", language!.code)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("filename", filename)
+      formData.append("languageCode", language!.code)
 
-    const res = await fetch("/api/translate", {
-      method: "POST",
-      body: formData,
-    })
+      const res = await fetch("/api/translate", {
+        method: "POST",
+        body: formData,
+      })
 
-    const data = await res.json()
-    console.log(data)
-    setTranslationRes(data)
+      if (!res.ok) {
+        throw new Error(`Translation request failed (${res.status})`)
+      }
+
+      const data = await res.json()
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      setTranslationRes(data)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Translation failed. Please try again."
+      setError(message)
+      toast.error(message)
+    }
   }
 
-  if (!translationRes) {
+  if (error) {
     return (
-      <main className="flex min-h-[calc(70vh-5rem)] items-center justify-center">
-        <div className="flex gap-4 items-center">
-          <Loader2 className="animate-spin" />
-          <span className="text-lg">Translating</span>
+      <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center pb-20">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="text-sm font-medium text-destructive">Translation failed</span>
+          <span className="text-sm text-muted-foreground">{error}</span>
         </div>
       </main>
     )
   }
 
+  if (!translationRes) {
+    return (
+      <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center pb-20">
+        <div className="flex flex-col items-center gap-5">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center">
+              <FileText className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-background border border-border flex items-center justify-center shadow-sm">
+              <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <span className="text-sm font-medium">
+              Translating your document
+            </span>
+            <span className="text-sm text-muted-foreground">
+              This may take a moment…
+            </span>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  const reuseRate =
+    translationRes.total_segments > 0
+      ? (translationRes.reused_segments / translationRes.total_segments) * 100
+      : 0
+
   return (
-    <main className="min-h-[calc(100vh-5rem)] p-8 flex justify-center gap-[5vw]">
-      <div className="bg-gray-50 p-4 w-[900px] h-[calc(100vh-8rem)]">
-        <div className="flex h-16 px-10 justify-between items-center">
-          <span className="text-lg font-semibold">{filename}.docx</span>
+    <main className="min-h-[calc(100vh-5rem)] p-6 pb-20 flex justify-center gap-6">
+      {/* Document Editor Panel */}
+      <div className="flex flex-col border border-border rounded-xl overflow-hidden shadow-sm w-[900px] h-[calc(100vh-8rem)] shrink-0">
+        {/* Editor Header */}
+        <div className="flex h-12 px-4 justify-between items-center border-b border-border bg-muted/40 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-medium truncate">
+              {filename}.docx
+            </span>
+          </div>
           {isEditorReady && (
             <Button
+              size="sm"
+              variant={isEditing ? "secondary" : "outline"}
+              onClick={() => !isEditing && setIsEditing(true)}
               disabled={isEditing}
-              onClick={() => setIsEditing(true)}
-              variant="outline"
+              className="shrink-0 cursor-pointer"
             >
-              {isEditing ? (
-                <>
-                  <Pencil size={15} />
-                  <span>Editing</span>
-                </>
-              ) : (
-                <>
-                  <Eye size={18} />
-                  <span>Edit</span>
-                </>
-              )}
+              <Pencil className="w-3.5 h-3.5" />
+              {isEditing ? "Editing" : "Edit"}
             </Button>
           )}
         </div>
-        <DocumentEditor
-          ref={editorRef}
-          onReady={() => setIsEditorReady(true)}
-          isEditing={isEditing}
-          document={`/api/document?fileKey=${encodeURIComponent(translationRes.key)}`}
-        />
+        {/* Editor Body */}
+        <div className="flex-1 min-h-0 bg-white">
+          <DocumentEditor
+            ref={editorRef}
+            onReady={() => setIsEditorReady(true)}
+            isEditing={isEditing}
+            document={`/api/document?fileKey=${encodeURIComponent(translationRes.key)}`}
+          />
+        </div>
       </div>
-      <div className="w-fit min-h-[calc(100vh-9rem)] flex flex-col justify-between py-20">
-        <div className="flex flex-col gap-4 w-[300px]">
-          <Card className="gap-1 py-4 px-6 shadow-none">
+
+      {/* Stats & Actions Sidebar */}
+      <div className="w-[240px] shrink-0 flex flex-col justify-between py-2">
+        {/* Stats Cards */}
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+            Summary
+          </p>
+
+          <Card className="py-4 px-5 shadow-none gap-1.5">
             <CardHeader className="p-0">
-              <CardTitle className="opacity-70 flex items-center gap-2 text-sm">
-                <Text size={15} />
+              <CardTitle className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+                <Text className="w-3.5 h-3.5" />
                 Total Segments
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <span className="text-2xl font-semibold">
+              <span className="text-2xl font-semibold tabular-nums">
                 {translationRes.total_segments}
               </span>
             </CardContent>
           </Card>
-          <Card className="gap-1 py-4 px-6 shadow-none">
+
+          <Card className="py-4 px-5 shadow-none gap-1.5">
             <CardHeader className="p-0">
-              <CardTitle className="opacity-70 flex items-center gap-2 text-sm">
-                <Repeat size={15} />
+              <CardTitle className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+                <Repeat className="w-3.5 h-3.5" />
                 Reuse Rate
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <span className="text-2xl font-semibold">
-                {(
-                  (translationRes.reused_segments /
-                    translationRes.total_segments) *
-                  100
-                ).toFixed(2)}
-                %
+            <CardContent className="p-0 flex flex-col gap-2">
+              <span className="text-2xl font-semibold tabular-nums">
+                {reuseRate.toFixed(1)}%
               </span>
+              <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-foreground transition-all duration-700 ease-out"
+                  style={{ width: `${reuseRate}%` }}
+                />
+              </div>
             </CardContent>
           </Card>
-          <Card className="gap-1 py-4 px-6 shadow-none">
+
+          <Card className="py-4 px-5 shadow-none gap-1.5">
             <CardHeader className="p-0">
-              <CardTitle className="opacity-70 flex items-center gap-2 text-sm">
-                <Euro size={15} />
+              <CardTitle className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+                <Euro className="w-3.5 h-3.5" />
                 Cost Savings
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <span className="text-2xl font-semibold">
-                $ {translationRes.cost_savings.toFixed(4)}
+              <span className="text-2xl font-semibold tabular-nums">
+                ${translationRes.cost_savings.toFixed(4)}
               </span>
             </CardContent>
           </Card>
         </div>
+
+        {/* Action Buttons */}
         {isEditorReady && (
-          <div className="flex justify-end">
+          <div className="flex flex-col gap-2">
             {isEditing ? (
               <SaveDocBtn
                 editorRef={editorRef}

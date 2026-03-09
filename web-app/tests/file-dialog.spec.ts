@@ -42,14 +42,9 @@ test("Cancel button closes the dialog", async ({ page }) => {
   await expect(page.locator("#filename-input")).not.toBeVisible()
 })
 
-test("clicking Translate without a language redirects back to home", async ({
+test("Translate button is disabled when no language is selected", async ({
   page,
 }) => {
   await uploadFile(page)
-  await page.getByRole("button", { name: "Translate" }).click()
-  // translate page calls discardFile() because language is null, redirecting to /
-  await page.waitForURL("/")
-  await expect(
-    page.getByRole("heading", { name: "Welcome to Polydoc" }),
-  ).toBeVisible()
+  await expect(page.getByRole("button", { name: "Translate" })).toBeDisabled()
 })

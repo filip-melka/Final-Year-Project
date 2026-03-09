@@ -78,7 +78,11 @@ def lambda_handler(event, context):
                             'Value': 'dev'
                         }
                     ],
-                    'Value': translation_res["reused_segments"] / translation_res["total_segments"],
+                    'Value': (
+                        translation_res["reused_segments"] / translation_res["total_segments"]
+                        if translation_res["total_segments"] > 0
+                        else 0
+                    ),
                     'Unit': 'Percent'
                 },
                 {

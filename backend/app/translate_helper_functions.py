@@ -153,6 +153,12 @@ def translate(doc, language_full, language_code):
     to_be_translated = retrieved_data["to_be_translated"]
     translated_text_segments = translate_text_segments(to_be_translated, language_full)
 
+    if len(translated_text_segments) != len(to_be_translated):
+        raise ValueError(
+            f"GPT-4o returned {len(translated_text_segments)} segments but "
+            f"{len(to_be_translated)} were sent. Translation output is incomplete."
+        )
+
     # Save translations into the index
     for idx, translated_text_segment in enumerate(translated_text_segments):
         source_text = to_be_translated[idx]
@@ -175,7 +181,7 @@ def translate(doc, language_full, language_code):
         )
     
     for run in runs:
-        run.text = translations[run.text]
+        run.text = translations.get(run.text, run.text)
 
     return {
         "total_segments": retrieved_data["no_of_total"],

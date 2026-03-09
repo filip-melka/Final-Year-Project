@@ -10,14 +10,12 @@ export async function GET(req: Request) {
     const fileKey = url.searchParams.get("fileKey")
     const type = (url.searchParams.get("type") || "docx").toLowerCase()
 
-    console.log(fileKey)
-
     if (!fileKey) {
       return new Response("Missing fileKey", { status: 400 })
     }
     const base64 = await getDocxFileAsString(fileKey)
     const data = Buffer.from(base64, "base64")
-    const originalFilename = fileKey.split("/").pop() || "document.docx"
+    const originalFilename = (fileKey.split("/").pop() || "document.docx").replace(/["\r\n]/g, "")
 
     if (type === "pdf") {
       const SUPERDOC_API_KEY = process.env.SUPERDOC_API_KEY
@@ -76,7 +74,15 @@ export async function GET(req: Request) {
       },
     })
   } catch (err) {
-    return new Response("File not found", { status: 404 })
+    const code =
+      err instanceof Error && "Code" in err
+        ? (err as unknown as { Code: string }).Code
+        : undefined
+    if (code === "NoSuchKey" || code === "NotFound") {
+      return new Response("File not found", { status: 404 })
+    }
+    console.error("GET /document error", err)
+    return new Response("Internal server error", { status: 500 })
   }
 }
 

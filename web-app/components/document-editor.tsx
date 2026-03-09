@@ -8,13 +8,7 @@ import React, {
 } from "react"
 import dynamic from "next/dynamic"
 import { Button } from "./ui/button"
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "./ui/select"
+import { Loader2, Save, FileDown } from "lucide-react"
 import { SuperDoc } from "@harbour-enterprises/superdoc"
 import { putDocxFile } from "@/lib/aws-clients"
 
@@ -103,7 +97,7 @@ const DocumentEditorComponent = forwardRef<EditorHandle, DocumentEditorProps>(
     return (
       <div
         id={idRef.current}
-        className="w-fit h-[calc(100%-3rem)] overflow-scroll mx-auto"
+        className="w-fit mt-4 h-[calc(100%-3rem)] overflow-scroll mx-auto"
         ref={containerRef}
       />
     )
@@ -172,8 +166,22 @@ export function SaveDocBtn({
   }
 
   return (
-    <Button onClick={handleClick} disabled={isSaving}>
-      {isSaving ? "Saving..." : "Save"}
+    <Button
+      onClick={handleClick}
+      disabled={isSaving}
+      className="w-full cursor-pointer"
+    >
+      {isSaving ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Saving…
+        </>
+      ) : (
+        <>
+          <Save className="w-4 h-4" />
+          Save
+        </>
+      )}
     </Button>
   )
 }
@@ -185,7 +193,8 @@ export function DownloadDocBtn({
   editorRef: EditorHandleRef
   fileKey?: string
 }) {
-  const [value, setValue] = React.useState("docx")
+  const [downloadingDocx, setDownloadingDocx] = React.useState(false)
+  const [downloadingPdf, setDownloadingPdf] = React.useState(false)
 
   function getFilenameFromKey(key?: string, fallback = "document.docx") {
     if (!key) return fallback
@@ -203,63 +212,91 @@ export function DownloadDocBtn({
     URL.revokeObjectURL(url)
   }
 
-  async function handleChange(v: string) {
-    setValue(v)
-
+  async function handleDocx() {
+    setDownloadingDocx(true)
     try {
-      if (v === "docx") {
-        // Export from the editor as a blob and download
-        const blob = await editorRef.current?.exportDoc?.({
-          triggerDownload: false,
-          commentsType: "clean",
-        })
-        if (!blob) {
-          console.error("No docx blob returned from editor")
-          return
-        }
-        const filename = getFilenameFromKey(fileKey, "document.docx")
-        await downloadBlob(blob, filename)
+      const blob = await editorRef.current?.exportDoc?.({
+        triggerDownload: false,
+        commentsType: "clean",
+      })
+      if (!blob) {
+        console.error("No docx blob returned from editor")
         return
       }
-
-      if (v === "pdf") {
-        if (!fileKey) {
-          alert("Missing fileKey: cannot request PDF conversion")
-          return
-        }
-
-        const url = `/api/document?fileKey=${encodeURIComponent(
-          fileKey,
-        )}&type=pdf`
-        const resp = await fetch(url)
-        if (!resp.ok) {
-          console.error("Failed to fetch PDF", resp.status)
-          alert("Failed to convert/download PDF")
-          return
-        }
-        const arrayBuffer = await resp.arrayBuffer()
-        const pdfBlob = new Blob([arrayBuffer], { type: "application/pdf" })
-        const original = getFilenameFromKey(fileKey, "document.docx")
-        const pdfFilename = original.replace(/\.docx$/i, "") + ".pdf"
-        await downloadBlob(pdfBlob, pdfFilename)
-        return
-      }
+      await downloadBlob(blob, getFilenameFromKey(fileKey, "document.docx"))
     } catch (e) {
       console.error("Download error", e)
       alert("Download failed")
+    } finally {
+      setDownloadingDocx(false)
+    }
+  }
+
+  async function handlePdf() {
+    if (!fileKey) {
+      alert("Missing fileKey: cannot request PDF conversion")
+      return
+    }
+    setDownloadingPdf(true)
+    try {
+      const url = `/api/document?fileKey=${encodeURIComponent(fileKey)}&type=pdf`
+      const resp = await fetch(url)
+      if (!resp.ok) {
+        console.error("Failed to fetch PDF", resp.status)
+        alert("Failed to convert/download PDF")
+        return
+      }
+      const arrayBuffer = await resp.arrayBuffer()
+      const pdfBlob = new Blob([arrayBuffer], { type: "application/pdf" })
+      const original = getFilenameFromKey(fileKey, "document.docx")
+      const pdfFilename = original.replace(/\.docx$/i, "") + ".pdf"
+      await downloadBlob(pdfBlob, pdfFilename)
+    } catch (e) {
+      console.error("Download error", e)
+      alert("Download failed")
+    } finally {
+      setDownloadingPdf(false)
     }
   }
 
   return (
-    <Select value={value} onValueChange={handleChange}>
-      <SelectTrigger size="default">
-        <SelectValue>Download</SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="docx">DOCX</SelectItem>
-        <SelectItem value="pdf">PDF</SelectItem>
-      </SelectContent>
-    </Select>
+    <div className="flex flex-col gap-2">
+      <Button
+        onClick={handleDocx}
+        disabled={downloadingDocx || downloadingPdf}
+        className="w-full cursor-pointer"
+      >
+        {downloadingDocx ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Downloading…
+          </>
+        ) : (
+          <>
+            <FileDown className="w-4 h-4" />
+            Download DOCX
+          </>
+        )}
+      </Button>
+      <Button
+        variant="outline"
+        onClick={handlePdf}
+        disabled={downloadingDocx || downloadingPdf}
+        className="w-full cursor-pointer"
+      >
+        {downloadingPdf ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Converting…
+          </>
+        ) : (
+          <>
+            <FileDown className="w-4 h-4" />
+            Download PDF
+          </>
+        )}
+      </Button>
+    </div>
   )
 }
 

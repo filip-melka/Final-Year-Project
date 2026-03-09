@@ -19,7 +19,7 @@ export function Navbar() {
         discardFile()
       }
     } else {
-      router.push("/")
+      router.replace("/")
     }
   }
 
@@ -45,6 +45,7 @@ export function Navbar() {
       <a
         href="https://renateq.grafana.net/public-dashboards/9ef68fa4e8494a708f718ea9d2764631"
         target="_blank"
+        rel="noopener noreferrer"
       >
         <Button variant="ghost">
           <ExternalLink size={18} />

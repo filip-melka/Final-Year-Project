@@ -64,6 +64,13 @@ export async function POST(req: NextRequest) {
     languageCode,
   }
 
+  if (!process.env.TRANSLATE_LAMBDA_FUNCTION) {
+    return NextResponse.json(
+      { error: "Server misconfiguration" },
+      { status: 500 },
+    )
+  }
+
   try {
     const command = new InvokeCommand({
       FunctionName: process.env.TRANSLATE_LAMBDA_FUNCTION,

@@ -11,20 +11,19 @@ import {
 } from "@aws-sdk/client-cloudwatch"
 import { Readable } from "stream"
 
+const credentials = {
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+}
+
 export const lambdaClient = new LambdaClient({
   region: "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
+  credentials,
 })
 
 export const s3 = new S3Client({
   region: "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
+  credentials,
 })
 
 export async function getDocxFileAsString(fileKey: string): Promise<string> {
@@ -57,28 +56,21 @@ export async function putDocxFile(
 ): Promise<void> {
   const buffer = Buffer.from(base64, "base64")
 
-  try {
-    const command = new PutObjectCommand({
-      Bucket: "polydoc-bucket",
-      Key: fileKey,
-      Body: buffer,
-      ContentType:
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ContentLength: buffer.length,
-    })
+  const command = new PutObjectCommand({
+    Bucket: "polydoc-bucket",
+    Key: fileKey,
+    Body: buffer,
+    ContentType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ContentLength: buffer.length,
+  })
 
-    await s3.send(command)
-  } catch (error) {
-    console.log(error)
-  }
+  await s3.send(command)
 }
 
 const cloudwatchClient = new CloudWatchClient({
   region: "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
+  credentials,
 })
 export async function putCustomMetric(
   metricName: string,

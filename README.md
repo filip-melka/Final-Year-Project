@@ -35,6 +35,11 @@ A smart document translation system that reuses past translations via a vector d
 │   │   ├── Dockerfile
 │   │   └── requirements.txt
 │   └── terraform/            # IaC for AWS resources (S3, Lambda, IAM)
+├── polydoc-skill/            # Claude Desktop skill for direct DOCX translation
+│   ├── SKILL.md              # Skill definition and usage instructions
+│   ├── scripts/
+│   │   └── translate.py      # Python client that invokes the Lambda
+│   └── .env                  # AWS credentials for the skill
 └── .github/workflows/        # CI/CD (Playwright tests, Terraform)
 ```
 
@@ -125,6 +130,28 @@ docker build -t translate_lambda:0.1.0 .
 terraform plan
 terraform apply
 ```
+
+## Polydoc Skill (Claude Desktop)
+
+The `polydoc-skill/` directory contains a [Claude Desktop](https://claude.ai/download) skill that lets you translate DOCX files directly from a conversation — no browser required.
+
+### Setup
+
+```sh
+pip install boto3 python-dotenv --break-system-packages
+```
+
+Create `polydoc-skill/.env` with:
+
+```
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+TRANSLATE_LAMBDA_FUNCTION=...
+```
+
+### Usage
+
+Trigger the skill by providing a `.docx` file and asking to translate it. Claude will invoke the Lambda, then display the output path and a metrics table (total segments, cached segments, reuse rate, cost savings).
 
 ## CI/CD
 

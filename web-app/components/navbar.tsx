@@ -34,11 +34,8 @@ export function Navbar() {
           Polydoc
         </button>
         <div className="flex ml-10 items-center gap-4">
-          <Link href={"/"}>
-            <Button variant="ghost">View Documents</Button>
-          </Link>
-          <Link href={"/"}>
-            <Button variant="ghost">Query Vector DB</Button>
+          <Link href={"/about"}>
+            <Button variant="ghost">About</Button>
           </Link>
         </div>
       </div>

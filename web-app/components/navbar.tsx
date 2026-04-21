@@ -3,24 +3,27 @@
 import { Button } from "@/components/ui/button"
 import { useFileContext } from "@/context/file-context"
 import { ExternalLink } from "lucide-react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 export function Navbar() {
   const router = useRouter()
   const { file, discardFile } = useFileContext()
 
-  function handleLogoClick() {
-    if (file) {
-      const confirmed = window.confirm(
-        "Going back will discard the current file. Continue?",
-      )
-      if (confirmed) {
-        discardFile()
-      }
-    } else {
-      router.replace("/")
+  function navigateWithConfirm(message: string, action: () => void) {
+    if (!file || window.confirm(message)) {
+      action()
     }
+  }
+
+  function handleLogoClick() {
+    navigateWithConfirm(
+      "Going back will discard the current file. Continue?",
+      discardFile,
+    )
+  }
+
+  function handleAboutClick() {
+    router.push("/about")
   }
 
   return (
@@ -34,9 +37,13 @@ export function Navbar() {
           Polydoc
         </button>
         <div className="flex ml-10 items-center gap-4">
-          <Link href={"/about"}>
-            <Button variant="ghost">About</Button>
-          </Link>
+          <Button
+            disabled={file != null}
+            variant="ghost"
+            onClick={handleAboutClick}
+          >
+            About
+          </Button>
         </div>
       </div>
       <a

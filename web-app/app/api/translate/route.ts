@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { InvokeCommand } from "@aws-sdk/client-lambda"
 import { lambdaClient } from "@/lib/aws-clients"
 
+export const maxDuration = 60
+export const dynamic = "force-dynamic"
+
 export type TranslateResponse = {
   statusCode: number
   total_segments: number
